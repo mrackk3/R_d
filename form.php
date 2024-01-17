@@ -1,3 +1,19 @@
+<?php
+
+// при відкритті сторінки записуєму cookie is_user
+
+setcookie('is_user',1,0,'/');
+
+// форма є на сторінці тільки за умови наявності cookie is_user
+
+$formUser = false;
+
+if (isset($_COOKIE['is_user'])) {
+    $formUser = true;
+} 
+
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -38,6 +54,26 @@
 </head>
 
 <body>
+
+        <div class="container">
+            <div class="row">
+                <div class="col-12">
+                    <div class="tableWrapper">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">#</th>
+                                    <th scope="col">Email</th>
+                                    <th scope="col">Password</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     <div class="container">
         <div class="row">
             <div class="col-12">
@@ -45,7 +81,8 @@
                     <div class="card">
                         <div class="card-body">
                             <h1 class="text"></h1>
-                            <form action="POST">
+                            <?php if ($formUser): ?>
+                            <form method="post">
                                 <div class="mb-3">
                                     <label for="inputEmail">Email</label>
                                     <input type="email" class="form-control" name="email" id="inputEmail">
@@ -56,6 +93,7 @@
                                 </div>
                                 <button type="submit" class="btn btn-primary">Sign up</button>
                             </form>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -82,6 +120,11 @@
                 form.find('input[name = email]').removeClass('error');
                 return false;
             } else {
+
+                // очищуємо таблицю кожного разу при відправці форми щоб дані не дублювалися
+
+                $('.table tbody tr').remove();
+
                 submitForm(form);
                 return false;
             }
@@ -89,21 +132,39 @@
 
         function submitForm(e) {
 
-            console.log($(e).serializeArray());
+            // console.log($(e).serializeArray());
 
             $.ajax({
                 type: "POST",
                 url: "api.php",
                 data: $(e).serialize(),
                 dataType: "json"
-            })
-                .always(function (resp) {
-                    if (resp.success) {
-                        $(".text").html(resp.email).removeClass('error');;
-                    } else {
-                        $(".text").html(resp.error).addClass('error');
+            }).always(function (resp) {
+                if (resp.success) {
+
+                    $(".text").html(resp.email).removeClass('error');
+
+                    const users = JSON.parse(resp.user);
+
+                    // выводимо в таблицю дані з сесії php
+
+                    for (let i = 0; i < users.length; i++) {
+
+                        let row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${users[i].id}</td>
+                            <td>${users[i].email}</td>
+                            <td>${users[i].password}</td>`;
+                        document.querySelector('.table tbody').appendChild(row);
+
                     }
-                });
+
+
+                } else {
+                    $(".text").html(resp.error);
+                    document.location.reload();
+                }
+            });
             return false;
         };
     </script>
